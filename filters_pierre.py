@@ -114,13 +114,20 @@ def filter_unmatched_regex(dir_to_filter, filtered_dir, dict_regex, dict_analyse
         else:
             anapath =''
 
-        #num_analyse_extension, pour num_analyse la 2em capture pour l'extension la 3èm capture
-        match_analyse_extension = re.match(dict_regex['num_analyse_extension'], file)
-        if match_analyse_extension is not None:
-            num_analyse = match_analyse_extension.group(2)
-            extension = match_analyse_extension.group(3)
+        #num_analyse
+        match_analyse = re.match(dict_regex['num_analyse'], file)
+        if match_analyse is not None:
+            num_analyse = match_analyse_extension.group(1)
         else:
-            num_analyse, extension = '', ''
+            num_analyse = ''
+
+        #extension
+        match_extension = re.match(dict_regex['extension'], file)
+        if match_extension is not None:
+            extension = match_extension.group(1)
+        else:
+            extension = ''
+            print('Warning: extension manquante sur un fichier {name}'.format(name=file))
 
         dict_analyses.setdefault(name,[]).append({'name':name, 'last_name_group':last_name_group,
             'anapath':anapath,'bare_code':None,'..':None,
@@ -144,36 +151,50 @@ def remove_duplicate_analysis(filtered_dir, dict_analyses):
         1. Les .tsv sont gardés par rapport aux .xsl et .xslx
         2. Le fichier avec le plus grand n° d'analyse est conservé
     """ 
-    nb=0   
+    nb_doublon=0   
     for key in dict_analyses:
-        #S'il y a plusieurs analyse pour un même nom
+        nb_remove = 0
+
         names = dict_analyses[key]
-        if len(names)>1:
-            nb_tsv = 0
-            for name in names:
-                if name['extension']=='tsv':
-                    nb_tsv += 1
+        tsv = False
+        for name in names:
+            if name['extension']=='tsv':
+                tsv = True
 
-            num_maxi = 0
-            for name in names:
-                if (name['num_analyse'] > num_maxi):
-                    num_maxi = name['num_analyse']
+        #On détermine le n° d'analyse maximum
+        num_maxi = 0
+        for name in names:
+            if name['num_analyse'] == '':
+                temp_num_analyse = 0
+            else:
+                temp_num_analyse = name['num_analyse']
+            if temp_num_analyse > num_maxi:
+                num_maxi = temp_num_analyse
 
+        for name in names:
+            if name['num_analyse'] == '':
+                temp_num_analyse = 0
+            else:
+                temp_num_analyse = name['num_analyse']
+            if (temp_num_analyse != num_maxi):
+                if os.path.exists(filtered_dir+'/'+name['file_name']):
+                    print("Removed: {file_name}".format(file_name=name['file_name']))
+                    os.remove(filtered_dir+'/'+name['file_name'])
+                    nb_remove += 1
+
+        if tsv:
             for name in names:
-                if (name['num_analyse'] != num_maxi):
+                if name['extension']!='tsv':
                     if os.path.exists(filtered_dir+'/'+name['file_name']):
                         print("Removed: {file_name}".format(file_name=name['file_name']))
                         os.remove(filtered_dir+'/'+name['file_name'])
-                    else:
-                        if nb_tsv > 0:
-                            for name in names:
-                                if name['extension']!='tsv':
-                                    if os.path.exists(filtered_dir+'/'+name['file_name']):
-                                        print("Removed: {file_name}".format(file_name=name['file_name']))
-                                        os.remove(filtered_dir+'/'+name['file_name'])
-                        
+                        nb_remove += 1
+
+        if len(names)-nb_remove > 1:
+            print("Doublons, {nb} fichiers restant ayant le nom {name}".format(name=key,nb=len(names)-nb_remove))
+            nb_doublon += len(names)-nb_remove-1         
                 
-    print("Nombre de doublons xls, xlsx {nb}".format(nb=nb))
+    print("Nombre de doublons {nb}".format(nb=nb_doublon))
 
 
 def rename_files(dir, file_list):
@@ -237,10 +258,14 @@ if __name__ == '__main__':
     dict_analyses, unmatched_files = filter_from_regex(filtered_dir, regex)
 
     # On refiltre les unmatche avec trois petites regex
+    # old
+    #'num_analyse_extension': r"((?:BC|bc)_?[0-9]{1,4})?([0-9]{0,4})?(?:_va|_VA)?\.(tsv|xls|xlsx)"
+
     dict_regex= {
     'name': r"^(?:[0-9]{1,3}-)?((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1})(?:((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1}))?(?:((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1}))?(?:((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1}))?", 
     'anapath': r"(?:[ \-_]{1})([A-Za-z]{2}[0-9]{1,3})", 
-    'num_analyse_extension': r"((?:BC|bc)_?[0-9]{1,4})?([0-9]{0,4})?(?:_va|_VA)?\.(tsv|xls|xlsx)"
+    'num_analyse' : r"((?:BC|bc)_?[0-9]{1,4})?([0-9]{0,4})?(?:_va|_VA)?\.(?:tsv|xls|xlsx)$",
+    'extension' : r".*(tsv|xls|xlsx)$"
     }
     dict_analyses =  filter_unmatched_regex(unmatched_files, filtered_dir, dict_regex, dict_analyses)
 
