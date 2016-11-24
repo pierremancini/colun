@@ -6,7 +6,6 @@
 import os, shutil, re, sys, csv
 
 
-
 def remove_useless(in_dir):
     """ Remove useless files from given directory.
 
@@ -90,7 +89,7 @@ def filter_unmatched_regex(dir_to_filter, filtered_dir, dict_regex, dict_analyse
     -La fonction complete le dictionnaire dict_analysis avec les noms de fichiers nouvellement matchés
     -Renvoie dictionnnaire des analyses
     """
-  
+
     liste_file_name = os.listdir(dir_to_filter)
 
     for file in liste_file_name:
@@ -117,7 +116,7 @@ def filter_unmatched_regex(dir_to_filter, filtered_dir, dict_regex, dict_analyse
         #num_analyse
         match_analyse = re.match(dict_regex['num_analyse'], file)
         if match_analyse is not None:
-            num_analyse = match_analyse_extension.group(1)
+            num_analyse = match_analyse.group(1)
         else:
             num_analyse = ''
 
@@ -263,16 +262,14 @@ if __name__ == '__main__':
 
     dict_regex= {
     'name': r"^(?:[0-9]{1,3}-)?((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1})(?:((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1}))?(?:((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1}))?(?:((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1}))?", 
-    'anapath': r"(?:[ \-_]{1})([A-Za-z]{2}[0-9]{1,3})", 
-    'num_analyse' : r"((?:BC|bc)_?[0-9]{1,4})?([0-9]{0,4})?(?:_va|_VA)?\.(?:tsv|xls|xlsx)$",
+    'anapath': r".*(?:[ \-_]{1})([A-Za-z]{2}[0-9]{1,3}).*", 
+    'num_analyse' : r".*\.(?:annotation|finalReport)\.([0-9]{0,4})?(?:_va|_VA)?\..*",
     'extension' : r".*(tsv|xls|xlsx)$"
     }
     dict_analyses =  filter_unmatched_regex(unmatched_files, filtered_dir, dict_regex, dict_analyses)
 
-
     # On supprime les duplicats
     remove_duplicate_analysis(filtered_dir,dict_analyses)
-
 
     with open('tableau_filtered_files.csv', 'wb') as f:
         w = csv.DictWriter(f, dict_analyses.itervalues().next()[0].keys())
