@@ -107,11 +107,12 @@ def filter_unmatched_regex(dir_to_filter, filtered_dir, dict_regex, dict_analyse
             sys.exit()
 
         #anapath, attention pour anapath on ne prendra que le 1er match
-        match_anapath = re.match(dict_regex['anapath'], file)
-        if match_anapath is not None:
-            anapath = match_anapath.group(1)
-        else:
-            anapath =''
+        iter_anapath = re.finditer(dict_regex['anapath'], file)
+        for match_anapath in iter_anapath:
+            if match_anapath is not None:
+                anapath = match_anapath.group(1)
+            else:
+                anapath =''
 
         #num_analyse
         match_analyse = re.match(dict_regex['num_analyse'], file)
@@ -257,13 +258,13 @@ if __name__ == '__main__':
     ('TURAN_QIACUBE_LH121_IonXpress_084.finalReport.4476.xls','TURAN_LH121_IonXpress_084.finalReport.4476.xls'),
     ('TURAN_QIACUBE_LH121_IonXpress_084.annotation.4471.tsv','TURAN_LH121_IonXpress_084.annotation.4471.tsv'),
     ('LANDRIN_QIACUBE_LG861_IonXpress_086.finalReport.4476.xls','LANDRIN_LG861_IonXpress_086.finalReport.4476.xls'),
-    ('LANDRIN_QIACUBE_LG861_IonXpress_086.annotation.4471.tsv','LANDRIN_LG861_IonXpress_086.annotation.4471.tsv')
+    ('LANDRIN_QIACUBE_LG861_IonXpress_086.annotation.4471.tsv','LANDRIN_LG861_IonXpress_086.annotation.4471.tsv'),
+    ('4-SALLABARY-manip2-BC26.xls','4-SALLABARY-manip2-KT932-BC26.xls'),
+    ('DHABI SKALI bloc2 BC57.xls','DHABI SKALI bloc2 KO425 BC57.xls')
+
     ]
     rename_files(filtered_dir, files_to_rename)
 
-
-    #oldold
-    #regex = r"(?:[0-9]{1,3}-)?([A-Z _]+)(?:[ \-_]{1})(?:([A-Z _]+)(?:[ \-_]{1}))?(?:([A-Z _]+)(?:[ \-_]{1}))?([A-Z]{2}[0-9]{1,3})(?:[ \-_]{1})?(_IonXpress_[0-9]{1,3}|(?:-|_|\ )(?:BC|bc)_?[0-9]{1,3})?(\.annotation\.|\.finalReport\.)?([0-9]{0,4})(?:_va|_VA)?\.(tsv|xls|xlsx)"
     #old
     #regex = r"^(?:[0-9]{1,3}-)?((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1})(?:((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1}))?(?:((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1}))?(?:((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1}))?([A-Z]{2}[0-9]{1,3})(?:[ \-_]{1})(?:[ \-_]{1})?(IonXpress_[0-9]{1,3}|(?:[-_ ])?(?:BC|bc)_?[0-9]{1,3}|IonXpress_(?:BC|bc)_?[0-9]{1,3})?(\.annotation\.|\.finalReport\.)?([0-9]{0,4})(?:_va|_VA)?\.(tsv|xls|xlsx)?"
     
@@ -280,7 +281,7 @@ if __name__ == '__main__':
 
     dict_regex= {
     'name': r"^(?:[0-9]{1,3}-)?((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1})(?:((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1}))?(?:((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1}))?(?:((?:[A-Z]+)|(?:[A-Z][a-z]+))(?:[ \-_]{1}))?", 
-    'anapath': r".*(?:[ \-_]{1})([A-Za-z]{2}[0-9]{1,3}).*", 
+    'anapath': r"(?:[ \-_]{1})([A-Za-z]{2}[0-9]{1,3}).*", 
     'num_analyse' : r".*\.(?:annotation|finalReport)\.([0-9]{0,4})?(?:_va|_VA)?\..*",
     'extension' : r".*(tsv|xls|xlsx)$"
     }
@@ -297,4 +298,3 @@ if __name__ == '__main__':
         for name in dict_analyses:
             for i in dict_analyses[name]:
                 w.writerow(i)
-
