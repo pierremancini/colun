@@ -156,6 +156,8 @@ def remove_duplicate_analysis(filtered_dir, dict_analyses):
         nb_remove = 0
 
         names = dict_analyses[key]
+
+        #On détermine l'un des fichiers à une extension .tsv
         tsv = False
         for name in names:
             if name['extension']=='tsv':
@@ -171,24 +173,28 @@ def remove_duplicate_analysis(filtered_dir, dict_analyses):
             if temp_num_analyse > num_maxi:
                 num_maxi = temp_num_analyse
 
+        # On applique les deux filtres
         for name in names:
+            name['removed']=False
             if name['num_analyse'] == '':
                 temp_num_analyse = 0
             else:
                 temp_num_analyse = name['num_analyse']
-            if (temp_num_analyse != num_maxi):
+            if temp_num_analyse != num_maxi:
                 if os.path.exists(filtered_dir+'/'+name['file_name']):
                     print("Removed: {file_name}".format(file_name=name['file_name']))
                     os.remove(filtered_dir+'/'+name['file_name'])
+                    name['removed']=True
                     nb_remove += 1
+                if tsv:
+                    if name['extension']!='tsv':
+                        if os.path.exists(filtered_dir+'/'+name['file_name']):
+                            print("Removed: {file_name}".format(file_name=name['file_name']))
+                            os.remove(filtered_dir+'/'+name['file_name'])
+                            name['removed']=True
+                            nb_remove += 1
+            
 
-        if tsv:
-            for name in names:
-                if name['extension']!='tsv':
-                    if os.path.exists(filtered_dir+'/'+name['file_name']):
-                        print("Removed: {file_name}".format(file_name=name['file_name']))
-                        os.remove(filtered_dir+'/'+name['file_name'])
-                        nb_remove += 1
 
         if len(names)-nb_remove > 1:
             print("Doublons, {nb} fichiers restant ayant le nom {name}".format(name=key,nb=len(names)-nb_remove))
@@ -225,6 +231,33 @@ def count_anapath(dict_analyses):
 
 
     return dict_analyses
+
+def sort_colun_lung(dict_analyses,dict_colun_lung,in_dir='files_filtered'):
+    """ Trie les fichiers en trois catégorie colun, lung et autre.
+
+        Utilise un dictionnaire donnée en argument qui contient la catégorie en fonction
+        du n° anapath.
+        Cette liste est comparé au n° anapath de dict_analysis
+        #Retourne le nom des trois dossiers contenant les fichiers triés
+    """
+
+    liste_file_name = os.listdir(dir_to_filter)
+
+    for file_name in liste_file_name:
+        pass
+    """for key in dict_analyses:
+        for name in dict_analyses[key]:
+            if dict_colun[name['anapath']] == 'colun':
+
+            elif dict_colun[name['anapath']] == 'lung':
+
+            else:
+                print('Other')"""
+
+
+
+
+    #return dir_colun, dir_lung, dir_other
 
 
 
@@ -298,3 +331,19 @@ if __name__ == '__main__':
         for name in dict_analyses:
             for i in dict_analyses[name]:
                 w.writerow(i)
+
+
+    # Classement des fichiers en fonction du type d'anapath, lung ou colun
+    dict_colun_lung = {}
+    with open('NGS colon-lung échantillons COLONS_anapath.txt', 'rb') as f:
+        for line in f:
+            dict_colun_lung[line.replace("\n", "")] = 'colun'
+    
+    with open('NGS colon-lung échantillons POUMONS_anapath.txt', 'rb') as f:
+        for line in f:
+            dict_colun_lung[line.replace("\n", "")] = 'lung'
+
+
+
+    print(dict_colun_lung)
+    
