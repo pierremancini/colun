@@ -207,6 +207,24 @@ def rename_files(dir, file_list):
         if file[1] != '':
             os.rename(os.path.join(dir, file[0]), os.path.join(dir, file[1]))
 
+def count_anapath(dict_analyses):
+    """ Compte les nombres de n° anapath différent par nom.
+
+        Retourne le dictionnaire donné en argument avec une colone nb_anapath_diff en plus
+    """
+    
+    for key in dict_analyses:
+        dict_anapath = {}
+        for name in dict_analyses[key]:
+            dict_anapath.setdefault(name['anapath'],0)
+            dict_anapath[name['anapath']] += 1
+
+        for name in dict_analyses[key]:
+            name.setdefault('nb_diff_anapath', len(dict_anapath)) 
+
+
+    return dict_analyses
+
 
 
 if __name__ == '__main__':
@@ -270,6 +288,8 @@ if __name__ == '__main__':
 
     # On supprime les duplicats
     remove_duplicate_analysis(filtered_dir,dict_analyses)
+
+    count_anapath(dict_analyses)
 
     with open('tableau_filtered_files.csv', 'wb') as f:
         w = csv.DictWriter(f, dict_analyses.itervalues().next()[0].keys())
