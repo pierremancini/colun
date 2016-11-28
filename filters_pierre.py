@@ -231,8 +231,8 @@ def count_anapath(dict_analyses):
 
     return dict_analyses
 
-def sort_colun_lung(dict_analyses,dict_colun_lung,in_dir='files_filtered'):
-    """ Trie les fichiers en trois catégorie colun, lung et autre.
+def sort_colon_lung(dict_analyses,dict_colon_lung,in_dir='files_filtered'):
+    """ Trie les fichiers en trois catégorie colon, lung et autre.
 
         Utilise un dictionnaire donné en argument qui contient la catégorie en fonction
         du n° anapath.
@@ -242,7 +242,7 @@ def sort_colun_lung(dict_analyses,dict_colun_lung,in_dir='files_filtered'):
 
     liste_file_name = os.listdir(in_dir)
 
-    os.mkdir(os.path.join(in_dir,'dir_colun'))
+    os.mkdir(os.path.join(in_dir,'dir_colon'))
     os.mkdir(os.path.join(in_dir,'dir_lung'))
     os.mkdir(os.path.join(in_dir,'dir_other'))
 
@@ -250,14 +250,14 @@ def sort_colun_lung(dict_analyses,dict_colun_lung,in_dir='files_filtered'):
         for name in dict_analyses[key]:
             if not name['removed']:
                 try:
-                    if dict_colun_lung[name['anapath']] == 'colun':
-                        shutil.move(os.path.join(in_dir,name['file_name']),os.path.join(in_dir,'dir_colun', name['file_name']))
-                    elif dict_colun_lung[name['anapath']] == 'lung':
+                    if dict_colon_lung[name['anapath']] == 'colon':
+                        shutil.move(os.path.join(in_dir,name['file_name']),os.path.join(in_dir,'dir_colon', name['file_name']))
+                    elif dict_colon_lung[name['anapath']] == 'lung':
                         shutil.move(os.path.join(in_dir,name['file_name']),os.path.join(in_dir,'dir_lung', name['file_name']))
                 except KeyError as e:
                     shutil.move(os.path.join(in_dir,name['file_name']),os.path.join(in_dir,'dir_other', name['file_name']))
                     
-    return ('dir_colun', 'dir_lung', 'dir_other')
+    return ('dir_colon', 'dir_lung', 'dir_other')
 
 
 if __name__ == '__main__':
@@ -332,15 +332,15 @@ if __name__ == '__main__':
                 w.writerow(i)
 
 
-    # Classement des fichiers en fonction du type d'anapath, lung ou colun
-    dict_colun_lung = {}
+    # Classement des fichiers en fonction du type d'anapath, lung ou colon
+    dict_colon_lung = {}
     with open('NGS colon-lung échantillons COLONS_anapath.txt', 'rb') as f:
         for line in f:
-            dict_colun_lung[line.replace("\n", "")] = 'colun'
+            dict_colon_lung[line.replace("\n", "")] = 'colon'
     
     with open('NGS colon-lung échantillons POUMONS_anapath.txt', 'rb') as f:
         for line in f:
-            dict_colun_lung[line.replace("\n", "")] = 'lung'
+            dict_colon_lung[line.replace("\n", "")] = 'lung'
 
-    sort_colun_lung(dict_analyses,dict_colun_lung,in_dir='files_filtered')
+    sort_colon_lung(dict_analyses,dict_colon_lung,in_dir='files_filtered')
     
