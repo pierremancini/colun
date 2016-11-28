@@ -100,7 +100,6 @@ def filter_unmatched_regex(dir_to_filter, filtered_dir, dict_regex, dict_analyse
         if match_name is not None:
             # Concatenation des noms
             name, last_name_group = concatenate_names(match_name)
-
         else:
             print('Le nom de fichier {file} ne match avec la regex spécial nom'.format(file=file))
             #On tue le script pour le débug 
@@ -235,30 +234,30 @@ def count_anapath(dict_analyses):
 def sort_colun_lung(dict_analyses,dict_colun_lung,in_dir='files_filtered'):
     """ Trie les fichiers en trois catégorie colun, lung et autre.
 
-        Utilise un dictionnaire donnée en argument qui contient la catégorie en fonction
+        Utilise un dictionnaire donné en argument qui contient la catégorie en fonction
         du n° anapath.
         Cette liste est comparé au n° anapath de dict_analysis
         #Retourne le nom des trois dossiers contenant les fichiers triés
     """
 
-    liste_file_name = os.listdir(dir_to_filter)
+    liste_file_name = os.listdir(in_dir)
 
-    for file_name in liste_file_name:
-        pass
-    """for key in dict_analyses:
+    os.mkdir(os.path.join(in_dir,'dir_colun'))
+    os.mkdir(os.path.join(in_dir,'dir_lung'))
+    os.mkdir(os.path.join(in_dir,'dir_other'))
+
+    for key in dict_analyses:
         for name in dict_analyses[key]:
-            if dict_colun[name['anapath']] == 'colun':
-
-            elif dict_colun[name['anapath']] == 'lung':
-
-            else:
-                print('Other')"""
-
-
-
-
-    #return dir_colun, dir_lung, dir_other
-
+            if not name['removed']:
+                try:
+                    if dict_colun_lung[name['anapath']] == 'colun':
+                        shutil.move(os.path.join(in_dir,name['file_name']),os.path.join(in_dir,'dir_colun', name['file_name']))
+                    elif dict_colun_lung[name['anapath']] == 'lung':
+                        shutil.move(os.path.join(in_dir,name['file_name']),os.path.join(in_dir,'dir_lung', name['file_name']))
+                except KeyError as e:
+                    shutil.move(os.path.join(in_dir,name['file_name']),os.path.join(in_dir,'dir_other', name['file_name']))
+                    
+    return ('dir_colun', 'dir_lung', 'dir_other')
 
 
 if __name__ == '__main__':
@@ -343,7 +342,5 @@ if __name__ == '__main__':
         for line in f:
             dict_colun_lung[line.replace("\n", "")] = 'lung'
 
-
-
-    print(dict_colun_lung)
+    sort_colun_lung(dict_analyses,dict_colun_lung,in_dir='files_filtered')
     
