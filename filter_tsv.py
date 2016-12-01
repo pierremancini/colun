@@ -100,8 +100,8 @@ if __name__ == '__main__':
             if match is not None:
                 csv_dict = []
                 with open(os.path.join(in_dir, file_name), 'rb') as csvfile:
-                    dict_reader, temp_dict_reader = itertools.tee(csv.DictReader(csvfile, delimiter='\t'))
-                    header = next(temp_dict_reader).keys()
+                    dict_reader = csv.DictReader(csvfile, delimiter='\t')
+                    header = dict_reader.fieldnames
                     for line in dict_reader:
                         # pas de ligne avec uniquement des \t
                         if ''.join(line.values()):
