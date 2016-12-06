@@ -16,7 +16,8 @@ def remove_useless(in_dir, out_dir = "files_filtered"):
 
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
-    useless = ['pcr', 'temoin', "test", "acrometrix", "acometrix", "control", "t+", ".cov.", "all_amplicon", ".variantcaller.", "_robot_", "_manuel_", "_contamination_", "eeq", "blanc_"]
+    useless = ['pcr', 'temoin', "test", "acrometrix", "acometrix", "control", "t+", ".cov.", "all_amplicon",
+                 ".variantcaller.", "_robot_", "_manuel_", "_contamination_", "eeq", "blanc_"]
     for f in os.listdir(in_dir):
         if f:
             cp = True

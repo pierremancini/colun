@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os, shutil, re, sys, csv, itertools
-import filters_pierre
+from filters_pierre import remove_useless
 
 """ Tri des fichiers .tsv en fonction   """
 
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     in_dir = sys.argv[1]
     out_dir = 'filter_tsv_out'
 
-    filters_pierre.remove_useless(in_dir, out_dir)
+    remove_useless(in_dir, out_dir)
 
     liste_file_name = os.listdir(in_dir)
 
