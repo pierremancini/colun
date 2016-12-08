@@ -6,7 +6,7 @@
 import os, shutil, re, sys, csv
 
 
-def remove_useless(in_dir, out_dir = "files_filtered"):
+def remove_useless(in_dir, out_dir="files_filtered"):
     """ Remove useless files from given directory.
 
     - Enlève tout les fichiers considéré comme inutile, c'est à dire les fichiers qui on dans leur nom un des éléments de la liste useless.
@@ -17,7 +17,7 @@ def remove_useless(in_dir, out_dir = "files_filtered"):
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
     useless = ['pcr', 'temoin', "test", "acrometrix", "acometrix", "control", "t+", ".cov.", "all_amplicon",
-                 ".variantcaller.", "_robot_", "_manuel_", "_contamination_", "eeq", "blanc_"]
+            ".variantcaller.", "_robot_", "_manuel_", "_contamination_", "eeq", "blanc_"]
     for f in os.listdir(in_dir):
         if f:
             cp = True
