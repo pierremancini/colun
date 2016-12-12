@@ -112,23 +112,16 @@ class NameRemovedFromDict(Exception):
     pass
 
 
-if __name__ == '__main__':
+def check_trio(liste_file_name):
+    """ Vérifie que dans une liste de fichiers on a 1 .vcf / 1 xls variant color / 1 .tsv.
 
-    # Dossier à traiter, donné en 1er argument du script
-    in_dir = sys.argv[1]  # Ex: files_trio
-    out_dir = 'filter_tsv_out'
-
-    remove_useless(in_dir, out_dir)
-
-    liste_file_name = os.listdir(in_dir)
+    Retourne un dictionnaire contenant le nom du fichier indexé en fonction de sont extension """
 
     # Structure, {'name':{'nb_tsv':0, 'nb_vcf': 0, 'nb_xls':0}}
     dict_nb_files = {}
     dict_trio = {}
 
     for file_name in liste_file_name:
-
-        # Pour commencer; on ne garde que 1 .vcf / 1 xls variant color / 1 .tsv
 
         iter = re.finditer(r"([^\.]*)((?:\.annotation\.)|(?:\.variantcaller\.))[0-9]{4}\.(.*)$", file_name)
         for match in iter:
@@ -189,6 +182,21 @@ if __name__ == '__main__':
     except NameRemovedFromDict:
         pass
 
+    return dict_trio
+
+
+if __name__ == '__main__':
+
+    # Dossier à traiter, donné en 1er argument du script
+    in_dir = sys.argv[1]  # Ex: files_trio
+    out_dir = 'filter_tsv_out'
+
+    remove_useless(in_dir, out_dir)
+
+    liste_file_name = os.listdir(in_dir)
+
+    dict_trio = check_trio(liste_file_name)
+
     """ on doit réécrire le .vcf en fonction des lignes restantes dans .tsv et de la
      correspondance position dans .vcf <-> position dans .tsv dans .xls  """
 
@@ -215,9 +223,6 @@ if __name__ == '__main__':
             for record in vcf_reader:
                 # On enregistre le record si n° correspondant est dans le .tsv
                 if caller[str(record.POS)] in list_pos_tsv:
-                    # Pour le débug:
-                    if record.POS != caller[str(record.POS)]:
-                        print("{anc} -> {nouv}".format(anc=record.POS, nouv=caller[str(record.POS)]))
                     # Remplacement du n° pos
                     record.POS = caller[str(record.POS)]
                     lines_new_vcf.append(record)
