@@ -170,7 +170,7 @@ if __name__ == '__main__':
                     dict_trio.setdefault(name, {'tsv': '', 'vcf': '', 'xls': ''})
                     dict_trio[name][extension] = file_name
 
-    # 1. On regarde qu'on a bien un trio et pas un duo ou un seul fichier
+    #  On regarde qu'on a bien un trio et pas un duo ou un seul fichier
     try:
         for name in dict_trio:
             for file_name in dict_trio[name]:
@@ -189,13 +189,44 @@ if __name__ == '__main__':
     except NameRemovedFromDict:
         pass
 
-
-    # 2. Partie lecture réécriture
-
-    # on doit réécrire le .vcf en fonction des lignes restantes dans .tsv et de la correspondance dans .xls
+    """ on doit réécrire le .vcf en fonction des lignes restantes dans .tsv et de la
+     correspondance position dans .vcf <-> position dans .tsv dans .xls  """
 
     for name in dict_trio:
+
+        # 1. la ligne n'est plus présente dans .tsv on la supprime dans le .vcf
+        list_pos_tsv = []
+        lines_new_vcf = []
+        # caller = VCF Position : Position
+        caller = {}
+
+        with open(os.path.join(out_dir, dict_trio[name]['xls']), 'rb') as f:
+            xls_reader = csv.DictReader(f, delimiter='\t')
+            for line_xls in xls_reader:
+                caller.setdefault(line_xls['VCF Position'], line_xls['Position'])
+
+        with open(os.path.join(out_dir, dict_trio[name]['tsv']), 'rb') as f:
+            tsv_reader = csv.DictReader(f, delimiter='\t')
+            for line_tsv in tsv_reader:
+                list_pos_tsv.append(line_tsv['Start_Position'])
+
         with open(os.path.join(out_dir, dict_trio[name]['vcf']), 'rb') as f:
-            vcf_reader = vcf.Reader(f, 'rb')
+            vcf_reader = vcf.Reader(f)
             for record in vcf_reader:
-                print record.POS
+                # On enregistre le record si n° correspondant est dans le .tsv
+                if caller[str(record.POS)] in list_pos_tsv:
+                    # Pour le débug:
+                    if record.POS != caller[str(record.POS)]:
+                        print("{anc} -> {nouv}".format(anc=record.POS, nouv=caller[str(record.POS)]))
+                    # Remplacement du n° pos
+                    record.POS = caller[str(record.POS)]
+                    lines_new_vcf.append(record)
+
+            # creation du dossier pour mettre les .vcf réécrit à part des anciens .vcf
+            if not os.path.exists(os.path.join(out_dir, 'new_vcf')):
+                os.mkdir(os.path.join(out_dir, 'new_vcf'))
+
+            with open(os.path.join(out_dir, 'new_vcf', dict_trio[name]['vcf']), 'wb') as new_f:
+                vcf_writer = vcf.Writer(new_f, vcf_reader)
+                for new_record in lines_new_vcf:
+                    vcf_writer.write_record(new_record)
