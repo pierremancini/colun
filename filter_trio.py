@@ -145,7 +145,7 @@ def check_trio(liste_file_name):
                 # Il ne faut pas de doublon (pour l'instant)
                 # NB: Cette partie de code pourra être suprrimée
 
-                if (dict_nb_files[name]['nb_tsv'] > 1) | (dict_nb_files[name]['nb_tsv'] > 1) | (dict_nb_files[name]['nb_tsv'] > 1):
+                if (dict_nb_files[name]['nb_tsv'] > 1) | (dict_nb_files[name]['nb_vcf'] > 1) | (dict_nb_files[name]['nb_xls'] > 1):
                     # On supprime tout les fichiers fesant partie de doublon, le file_name de la boucle et ses doublons
                     liste_file_out = os.listdir(out_dir)
                     for file_name_bis in liste_file_out:
@@ -164,25 +164,23 @@ def check_trio(liste_file_name):
                     dict_trio[name][extension] = file_name
 
     #  On regarde qu'on a bien un trio et pas un duo ou un seul fichier
-    try:
-        for name in dict_trio:
-            for file_name in dict_trio[name]:
-                # S'il manque un fichier on supprime les fichiers de out_dir et de fict_tri
-                if dict_trio[name][file_name] == '':
-                    print('Warning: Il existe un fichier seul ou un duo de fichier')
-                    flag = True
-                    for file_name_bis in dict_trio[name]:
-                        if dict_trio[name][file_name_bis] != '':
-                            os.remove(os.path.join(out_dir, dict_trio[name][file_name_bis]))
+    dict_trio_bis = {}
+    for name in dict_trio:
+        flag = False
+        for file_name in dict_trio[name]:
+            # S'il manque un fichier on supprime les fichiers de out_dir et de fict_tri
+            if dict_trio[name][file_name] == '':
+                print('Warning: {name}, il y a un fichier seul ou un duo de fichier'.format(name=name))
+                flag = True
+                for file_name_bis in dict_trio[name]:
+                    if dict_trio[name][file_name_bis] != '':
+                        os.remove(os.path.join(out_dir, dict_trio[name][file_name_bis]))
 
-            if flag:
-                dict_trio.pop(name, None)
-                raise NameRemovedFromDict
+        if not flag:
+            dict_trio_bis.setdefault(name, dict_trio[name])
 
-    except NameRemovedFromDict:
-        pass
 
-    return dict_trio
+    return dict_trio_bis
 
 
 if __name__ == '__main__':
