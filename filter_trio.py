@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os, shutil, re, sys, csv, itertools
+import os, shutil, re, sys, csv
 import vcf
 from filters_pierre import remove_useless
 
@@ -86,9 +86,12 @@ def apply_filter(line):
 
 
 def rewrite_tsv(file_name, in_dir, out_dir):
-    """ Selectionne des lignes valide du .tsv et réécrit le fichier dans out_dir."""
+    """ Selectionne des lignes valide du .tsv et réécrit le fichier dans out_dir.
 
-    # dictionnaire contenant les infos lignes par lignes du .tsv
+    Si après les filtres, aucune ligne du fichier n'est retenue on supprime le fichier
+    """
+
+    # dictionnaires contenant les infos lignes par lignes du .tsv
     csv_dict = []
 
     with open(os.path.join(in_dir, file_name), 'rb') as csvfile:
@@ -100,26 +103,30 @@ def rewrite_tsv(file_name, in_dir, out_dir):
                 if apply_filter(line):
                     csv_dict.append(line)
 
-    with open(os.path.join(out_dir, file_name), 'wb') as f:
-        w = csv.DictWriter(f, delimiter='\t', fieldnames=header)
-        w.writeheader()
-        for line in csv_dict:
-            w.writerow(line)
+    vide = False
+    if len(csv_dict) == 0:
+        vide = True
+    else:
+        with open(os.path.join(out_dir, file_name), 'wb') as f:
+            w = csv.DictWriter(f, delimiter='\t', fieldnames=header)
+            w.writeheader()
+            for line in csv_dict:
+                w.writerow(line)
 
-
-class NameRemovedFromDict(Exception):
-    """ Déclaration d'une exception pour être utilisée comme break de plusieur boucles."""
-    pass
+    return vide
 
 
 def check_trio(liste_file_name):
     """ Vérifie que dans une liste de fichiers on a 1 .vcf / 1 xls variant color / 1 .tsv.
 
+    Quand on crencontre un .tsv on y applique les filtres
     Retourne un dictionnaire contenant le nom du fichier indexé en fonction de sont extension """
 
     # Structure, {'name':{'nb_tsv':0, 'nb_vcf': 0, 'nb_xls':0}}
     dict_nb_files = {}
     dict_trio = {}
+
+    nb_vide = 0
 
     for file_name in liste_file_name:
 
@@ -135,10 +142,8 @@ def check_trio(liste_file_name):
 
                 if extension == 'tsv':
                     dict_nb_files[name]['nb_tsv'] += 1
-
                 if extension == 'vcf':
                     dict_nb_files[name]['nb_vcf'] += 1
-
                 if extension == 'xls':
                     dict_nb_files[name]['nb_xls'] += 1
 
@@ -155,7 +160,10 @@ def check_trio(liste_file_name):
 
                 else:
                     if extension == 'tsv':
-                        rewrite_tsv(file_name, in_dir, out_dir)
+                        vide = rewrite_tsv(file_name, in_dir, out_dir)
+                        if vide:
+                            nb_vide += 1
+
                     else:
                         # bouge les .vcf et .xls attachés au .tsv
                         shutil.copy(os.path.join(in_dir, file_name), os.path.join(out_dir, file_name))
@@ -163,6 +171,7 @@ def check_trio(liste_file_name):
                     dict_trio.setdefault(name, {'tsv': '', 'vcf': '', 'xls': ''})
                     dict_trio[name][extension] = file_name
 
+    print("Nombre de .tsv vide {nb_vide}".format(nb_vide=nb_vide))
     #  On regarde qu'on a bien un trio et pas un duo ou un seul fichier
     dict_trio_bis = {}
     for name in dict_trio:
@@ -178,7 +187,6 @@ def check_trio(liste_file_name):
 
         if not flag:
             dict_trio_bis.setdefault(name, dict_trio[name])
-
 
     return dict_trio_bis
 
@@ -219,6 +227,10 @@ if __name__ == '__main__':
         with open(os.path.join(out_dir, dict_trio[name]['vcf']), 'rb') as f:
             vcf_reader = vcf.Reader(f)
             for record in vcf_reader:
+                # TEST
+                """if caller[str(record.POS)] != str(record.POS):
+                    print('{anc} -> {new}'.format(anc=record.POS, new=caller[str(record.POS)]))"""
+
                 # On enregistre le record si n° correspondant est dans le .tsv
                 if caller[str(record.POS)] in list_pos_tsv:
                     # Remplacement du n° pos
