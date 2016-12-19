@@ -26,6 +26,43 @@ def make_dict_colon_lung(files_study_type):
     return dict_colon_lung
 
 
+def write_meta_files(out_dir, study_dir):
+
+    with open(os.path.join(out_dir, study_dir, 'meta_study.txt'), 'wb') as f:
+        if study_type == 'colon':
+            f.write('type_of_cancer: coadread\n')
+        elif study_type == 'lung':
+            f.write('type_of_cancer: nsclc\n')
+        f.write('cancer_study_identifier:' + study_dir + '\n')
+        f.write('name: ' + name_meta_study + '\n')
+        f.write('description: ' + description_meta_study + '\n')
+        f.write('short_name: ' + short_name_meta_study + '\n')
+        f.write('add_global_case_list: true\n')
+
+    # meta clinical
+    with open(os.path.join(out_dir, study_dir, 'meta_samples.txt'), 'wb') as f:
+        f.write('cancer_study_identifier:' + study_dir + '\n')
+        f.write('genetic_alteration_type: CLINICAL\n')
+        f.write('datatype: SAMPLE_ATTRIBUTES\n')
+        f.write('data_filename: data_samples.txt\n')
+
+    with open(os.path.join(out_dir, study_dir, 'meta_patients.txt'), 'wb') as f:
+        f.write('cancer_study_identifier:' + study_dir + '\n')
+        f.write('genetic_alteration_type: CLINICAL\n')
+        f.write('datatype: PATIENT_ATTRIBUTES\n')
+        f.write('data_filename: data_patients.txt\n')
+
+    with open(os.path.join(out_dir, study_dir, 'meta_mutations_extended.txt'), 'wb') as f:
+        f.write('cancer_study_identifier:' + study_dir + '\n')
+        f.write('genetic_alteration_type: MUTATION_EXTENDED\n')
+        f.write('datatype: MAF\n')
+        f.write('show_profile_in_analysis_tab: true\n')
+        f.write('profile_name: Mutations\n')
+        f.write('profile_description: ' + profile_description + '\n')
+        f.write('data_filename: ' + maf_filename + '\n')
+        f.write('swissprot_identifier: name\n')
+
+
 if __name__ == '__main__':
     """ Dossier à traiter, donné en 1er argument du script
 
@@ -130,37 +167,5 @@ if __name__ == '__main__':
             fcases.write("\t".join(case_list_ids))
 
         # ~~~~ Partie meta ~~~~
+        write_meta_files(out_dir, study_dir)
 
-        with open(os.path.join(out_dir, study_dir, 'meta_study.txt'), 'wb') as f:
-            if study_type == 'colon':
-                f.write('type_of_cancer: coadread\n')
-            elif study_type == 'lung':
-                f.write('type_of_cancer: nsclc\n')
-            f.write('cancer_study_identifier:' + study_dir + '\n')
-            f.write('name: ' + name_meta_study + '\n')
-            f.write('description: ' + description_meta_study + '\n')
-            f.write('short_name: ' + short_name_meta_study + '\n')
-            f.write('add_global_case_list: true\n')
-
-        # meta clinical
-        with open(os.path.join(out_dir, study_dir, 'meta_samples.txt'), 'wb') as f:
-            f.write('cancer_study_identifier:' + study_dir + '\n')
-            f.write('genetic_alteration_type: CLINICAL\n')
-            f.write('datatype: SAMPLE_ATTRIBUTES\n')
-            f.write('data_filename: data_samples.txt\n')
-
-        with open(os.path.join(out_dir, study_dir, 'meta_patients.txt'), 'wb') as f:
-            f.write('cancer_study_identifier:' + study_dir + '\n')
-            f.write('genetic_alteration_type: CLINICAL\n')
-            f.write('datatype: PATIENT_ATTRIBUTES\n')
-            f.write('data_filename: data_patients.txt\n')
-
-        with open(os.path.join(out_dir, study_dir, 'meta_mutations_extended.txt'), 'wb') as f:
-            f.write('cancer_study_identifier:' + study_dir + '\n')
-            f.write('genetic_alteration_type: MUTATION_EXTENDED\n')
-            f.write('datatype: MAF\n')
-            f.write('show_profile_in_analysis_tab: true\n')
-            f.write('profile_name: Mutations\n')
-            f.write('profile_description: ' + profile_description + '\n')
-            f.write('data_filename: ' + maf_filename + '\n')
-            f.write('swissprot_identifier: name\n')
