@@ -195,7 +195,7 @@ if __name__ == '__main__':
 
     # Dossier à traiter, donné en 1er argument du script
     in_dir = sys.argv[1]  # Ex: files_trio
-    out_dir = 'filter_tsv_out'
+    out_dir = 'filter_vcf_out'
 
     remove_useless(in_dir, out_dir)
 

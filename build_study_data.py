@@ -115,8 +115,7 @@ if __name__ == '__main__':
         reader = csv.reader(f, delimiter=';')
         for line in reader:
             line[0] = line[0].translate(None, ' ')
-            # {patient_id: [{sample_id, study_type}]}
-            # ou { lung :  {patient_id: [sample_id]}, colon : {patient_id: [sample_id]} }
+            # { lung :  {patient_id: [sample_id]}, colon : {patient_id: [sample_id]} }
             patient_id = line[1]
             sample_id = line[0]
             try:
@@ -126,13 +125,9 @@ if __name__ == '__main__':
                 elif dict_colon_lung[line[0]] == 'lung':
                     dict_samples['lung'].setdefault(patient_id, []).append(sample_id)
 
-                # ancien patients.setdefault(line[1], []).append({'sample_id': line[0], 'study_type': dict_colon_lung[line[0]]})
             except KeyError as e:
                 print('Warning: {} n\'est ni colon ni lung'.format(line[0]))
 
-    # Embranchement colon ou lung $study_name
-
-    #  patients -> dict_samples
     for study_type in dict_samples:
         if study_type == 'colon':
             study_dir = 'colon_study'
@@ -168,4 +163,3 @@ if __name__ == '__main__':
 
         # ~~~~ Partie meta ~~~~
         write_meta_files(out_dir, study_dir)
-
