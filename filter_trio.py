@@ -191,11 +191,8 @@ def check_trio(liste_file_name):
     return dict_trio_bis
 
 
-if __name__ == '__main__':
-
-    # Dossier à traiter, donné en 1er argument du script
-    in_dir = sys.argv[1]  # Ex: files_trio
-    out_dir = 'filter_vcf_out'
+def main(in_dir='files_trio', out_dir='filter_vcf_out'):
+    """ Enrobe tout le script dans une fonction pour faire communiquer le script avec d'autres script par des imports """
 
     remove_useless(in_dir, out_dir)
 
@@ -245,3 +242,12 @@ if __name__ == '__main__':
                 vcf_writer = vcf.Writer(new_f, vcf_reader)
                 for new_record in lines_new_vcf:
                     vcf_writer.write_record(new_record)
+
+
+if __name__ == '__main__':
+
+    # Dossier à traiter, donné en 1er argument du script
+    in_dir = sys.argv[1]  # Ex: files_trio
+    out_dir = 'filter_vcf_out'
+
+    main(in_dir, out_dir)
