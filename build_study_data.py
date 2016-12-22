@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     """ Dossier de sortie: voir architecture_fichiers_cbioportal.txt
     """
-    out_dir = 'cancer_study_data'
+    out_dir = 'out_build_study'
 
     case_list_name = 'nom de case liste'
     case_list_description = 'description de case liste'
