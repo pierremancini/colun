@@ -63,6 +63,54 @@ def write_meta_files(out_dir, study_dir):
         f.write('swissprot_identifier: name\n')
 
 
+def concatenate_maf_files(in_dir, out_file_path):
+    """ Colle le contenu des fichiers sans dupliquer le header.le
+
+        La function doit marcher avec tout les .csv contenant un header
+    """
+    liste_file_name = os.listdir(in_dir)
+
+    headers = []
+    lines = []
+
+    # lecture
+    first_file = True
+    for file_name in liste_file_name:
+        flag_header = True
+        """ 1er fichier on copie le header """
+        if first_file:
+            first_file = False
+            with open(os.path.join(in_dir, file_name), 'rb') as csvfile:
+                reader = csv.reader(csvfile, delimiter='\t')
+                for line in reader:
+                    if line[0][0] == '#':
+                        headers.append(line)
+                    else:
+                        if flag_header:
+                            headers.append(line)
+                            flag_header = False
+                        else:
+                            lines.append(line)
+        else:
+            with open(os.path.join(in_dir, file_name), 'rb') as csvfile:
+                reader = csv.reader(csvfile, delimiter='\t')
+                for line in reader:
+                    if line[0][0] != '#':
+                        if flag_header:
+                            flag_header = False
+                        else:
+                            lines.append(line)
+
+    if not os.path.exists(os.path.dirname(out_file_path)):
+        os.mkdir(os.path.dirname(out_file_path))
+    with open(out_file_path, 'wb') as f:
+        w = csv.writer(f, delimiter='\t')
+        for line in headers:
+            w.writerow(line)
+        for line in lines:
+            w.writerow(line)
+
+
 if __name__ == '__main__':
     """ Dossier à traiter, donné en 1er argument du script
 
