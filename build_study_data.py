@@ -78,9 +78,10 @@ def write_meta_files(out_dir, study_dir):
         f.write('data_filename: data_patients.txt\n')
 
     with open(os.path.join(out_dir, study_dir, 'meta_mutations_extended.txt'), 'wb') as f:
-        f.write('cancer_study_identifier:' + study_dir + '\n')
+        f.write('cancer_study_identifier: ' + study_dir + '\n')
         f.write('genetic_alteration_type: MUTATION_EXTENDED\n')
         f.write('datatype: MAF\n')
+        f.write('stable_id: mutations\n')
         f.write('show_profile_in_analysis_tab: true\n')
         f.write('profile_name: Mutations\n')
         f.write('profile_description: ' + profile_description + '\n')
@@ -167,6 +168,7 @@ if __name__ == '__main__':
     maf_filename = 'mutations.maf'
     profile_description = 'Mutation description truc bidul'
 
+    """ TODO: le nom du dossier créer sera celui de la variable $study_id """
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
     if not os.path.exists(os.path.join(out_dir, 'colon_study')):
@@ -198,7 +200,7 @@ if __name__ == '__main__':
         # Ici on ouvre trois fichiers à la fois
         with open(os.path.join(out_dir, study_dir, 'data_patients.txt'), 'wb') as fpatients, open(os.path.join(out_dir, study_dir, 'data_samples.txt'), 'wb') as fsamples, open(os.path.join(out_dir, study_dir, 'case_lists', "cases_custom.txt"), 'wb') as fcases:
 
-            en_tete = "#Patient Identifier\n#Patient identifier\n#STRING\n#1\nPATIENT_ID\n"
+            en_tete = "#Patient Identifier\tLocalisation\n#Patient Identifier\tLocalisation\n#STRING\tSTRING\n#1\t1\nPATIENT_ID\tLOCALISATION\n"
             fpatients.write(en_tete)
 
             en_tete = "#Patient Identifier\tSample Identifier\n#Patient Identifier\tSample Identifier\n#STRING\tSTRING\n#1\t1\nPATIENT_ID\tSAMPLE_ID\n"
@@ -206,14 +208,14 @@ if __name__ == '__main__':
 
             for patient_id in dict_samples[study_type]:
 
-                fpatients.write(patient_id + "\n")
-                case_list_ids.append(patient_id)
+                fpatients.write(patient_id + "\t" + study_dir + "\n")
 
                 for sample_id in dict_samples[study_type][patient_id]:
                     fsamples.write(patient_id + "\t" + sample_id + "\n")
+                    case_list_ids.append(sample_id)
 
-            fcases.write("cancer_study_identifcasesier: " + study_type + "\n")
-            fcases.write("stable_id: " + study_type + "_custom\n")
+            fcases.write("cancer_study_identifier: " + study_dir + "\n")
+            fcases.write("stable_id: " + study_dir + "_custom\n")
             fcases.write("case_list_name: " + case_list_name + "\n")
             fcases.write("case_list_description: " + case_list_description + "\n")
             fcases.write("case_list_ids: ")
