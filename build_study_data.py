@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os, shutil, sys, csv, re
+import os, sys, csv, re
 
 """ Créé les metadata et data à insérer dans cbioportal """
 
@@ -24,6 +24,31 @@ def make_dict_colon_lung(files_study_type):
                 dict_colon_lung[anapath] = study_type
 
     return dict_colon_lung
+
+
+def make_dict_samples(dict_colon_lung):
+    """Ecrit le dictionnaire qui classe les sampled_id par patient_id."""
+
+    dict_samples = {'colon': {}, 'lung': {}}
+
+    with open(os.path.join(in_dir, 'anapathpatient20161206092905.csv.csv')) as f:
+        reader = csv.reader(f, delimiter=';')
+        for line in reader:
+            line[0] = line[0].translate(None, ' ')
+            # { lung :  {patient_id: [sample_id]}, colon : {patient_id: [sample_id]} }
+            patient_id = line[1]
+            sample_id = line[0]
+            try:
+                if dict_colon_lung[line[0]] == 'colon':
+                    dict_samples['colon'].setdefault(patient_id, []).append(sample_id)
+
+                elif dict_colon_lung[line[0]] == 'lung':
+                    dict_samples['lung'].setdefault(patient_id, []).append(sample_id)
+
+            except KeyError:
+                print('Warning: {} n\'est ni colon ni lung'.format(line[0]))
+
+    return dict_samples
 
 
 def write_meta_files(out_dir, study_dir):
@@ -157,24 +182,8 @@ if __name__ == '__main__':
                  'lung': 'NGS colon-lung échantillons POUMONS_anapath.txt'}
     dict_colon_lung = make_dict_colon_lung(files_study_type)
 
-    dict_samples = {'colon': {}, 'lung': {}}
-
-    with open(os.path.join(in_dir, 'anapathpatient20161206092905.csv.csv')) as f:
-        reader = csv.reader(f, delimiter=';')
-        for line in reader:
-            line[0] = line[0].translate(None, ' ')
-            # { lung :  {patient_id: [sample_id]}, colon : {patient_id: [sample_id]} }
-            patient_id = line[1]
-            sample_id = line[0]
-            try:
-                if dict_colon_lung[line[0]] == 'colon':
-                    dict_samples['colon'].setdefault(patient_id, []).append(sample_id)
-
-                elif dict_colon_lung[line[0]] == 'lung':
-                    dict_samples['lung'].setdefault(patient_id, []).append(sample_id)
-
-            except KeyError as e:
-                print('Warning: {} n\'est ni colon ni lung'.format(line[0]))
+    # Trie les sample_id par patient_id
+    dict_samples = make_dict_samples(dict_colon_lung)
 
     for study_type in dict_samples:
         if study_type == 'colon':
@@ -186,6 +195,7 @@ if __name__ == '__main__':
             os.mkdir(os.path.join(out_dir, study_dir, 'case_lists'))
 
         # ~~~~ Partie data ~~~~
+        # Ici on ouvre trois fichiers à la fois
         with open(os.path.join(out_dir, study_dir, 'data_patients.txt'), 'wb') as fpatients, open(os.path.join(out_dir, study_dir, 'data_samples.txt'), 'wb') as fsamples, open(os.path.join(out_dir, study_dir, 'case_lists', "cases_custom.txt"), 'wb') as fcases:
 
             en_tete = "#Patient Identifier\n#Patient identifier\n#STRING\n#1\nPATIENT_ID\n"
@@ -208,6 +218,12 @@ if __name__ == '__main__':
             fcases.write("case_list_description: " + case_list_description + "\n")
             fcases.write("case_list_ids: ")
             fcases.write("\t".join(case_list_ids))
+
+        # Création de fichier d'annotation à partir des fichiers .vcf du dossier trio
+        """ #TEST le fichier .maf d'annotation est créé manuelement pour le test d'insertion dans cBioportal,
+        c'est à dire que le container vcf2maf n'est pas appelé par le script.
+        with open(os.path.join(out_dir, study_dir, 'annotations.maf'), 'wb') as fmaf:
+        """
 
         # ~~~~ Partie meta ~~~~
         write_meta_files(out_dir, study_dir)
