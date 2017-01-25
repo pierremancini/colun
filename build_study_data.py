@@ -61,7 +61,6 @@ def update_sample_barcode(in_file_path, out_file_path):
     head, file_name = os.path.split(in_file_path)
 
     # On extrait le n° anapath
-    # anapath, attention pour anapath on ne prendra que le 1er match
     iter_anapath = re.finditer(r"(?:[ \-_]{1})([A-Za-z]{2}[0-9]{1,3}).*", file_name)
     for match_anapath in iter_anapath:
         if match_anapath is not None:
@@ -69,10 +68,7 @@ def update_sample_barcode(in_file_path, out_file_path):
         else:
             print("Warning: no n° anapath found in file {}".format(file_name))
 
-    print('sample_id: ' + sample_id)
-
     csv_dict = []
-
     # Lecture
     with open(in_file_path, 'rb') as csvfile:
         # conservation de la partie \#
@@ -84,13 +80,16 @@ def update_sample_barcode(in_file_path, out_file_path):
             csv_dict.append(line)
 
     # Update barcore
-    for key in csv_dict:
-        if key == 'Matched_Norm_Sample_Barcode' or key == 'Tumor_Sample_Barcode':
-            print('ok')
-            print(csv_dict[key])
+    for line in csv_dict:
+        for key in line:
+            if key == 'Matched_Norm_Sample_Barcode' or key == 'Tumor_Sample_Barcode':
+                line[key] = sample_id
 
     # Ecriture
     with open(out_file_path, 'wb') as f:
+        # ecriture de la partie \#
+        for line in meta_header:
+            f.write(line)
         w = csv.DictWriter(f, delimiter='\t', fieldnames=header)
         w.writeheader()
         for line in csv_dict:
