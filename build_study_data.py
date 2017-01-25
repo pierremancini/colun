@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os, sys, csv, re
+import argparse
 
 """ Créé les metadata et data à insérer dans cbioportal """
 
@@ -16,7 +17,7 @@ def make_dict_colon_lung(files_study_type):
     for study_type, file in files_study_type.iteritems():
         with open(file, 'rb') as f:
             for line in f:
-                anapath = line.replace("\n", "")
+                anapath = line.replace("\n", '')
                 match_iter = re.finditer(r"-F$", anapath)
                 for match in match_iter:
                     if match is not None:
@@ -51,6 +52,61 @@ def make_dict_samples(dict_colon_lung):
     return dict_samples
 
 
+def update_sample_barcode(in_file_path, out_file_path):
+    """ Update values according to the in_file's sample_id.
+
+    Replace "TUMOR" and "NORMAL" value by sample_id value in the .maf
+    file's colunms "Tumor_Sample_Barcode" and "Matched_Norm_Sample_Barcode" """
+
+    head, file_name = os.path.split(in_file_path)
+
+    # On extrait le n° anapath
+    # anapath, attention pour anapath on ne prendra que le 1er match
+    iter_anapath = re.finditer(r"(?:[ \-_]{1})([A-Za-z]{2}[0-9]{1,3}).*", file_name)
+    for match_anapath in iter_anapath:
+        if match_anapath is not None:
+            sample_id = match_anapath.group(1)
+        else:
+            print("Warning: no n° anapath found in file {}".format(file_name))
+
+    print('sample_id: ' + sample_id)
+
+    csv_dict = []
+
+    # Lecture
+    with open(in_file_path, 'rb') as csvfile:
+        # conservation de la partie \#
+        meta_header = [row for row in csvfile if row[0][0] == '#']
+        csvfile.seek(0)
+        dict_reader = csv.DictReader(filter(lambda line: line[0] != '#', csvfile), delimiter='\t')
+        header = dict_reader.fieldnames
+        for line in dict_reader:
+            csv_dict.append(line)
+
+    # Update barcore
+    for key in csv_dict:
+        if key == 'Matched_Norm_Sample_Barcode' or key == 'Tumor_Sample_Barcode':
+            print('ok')
+            print(csv_dict[key])
+
+    # Ecriture
+    with open(out_file_path, 'wb') as f:
+        w = csv.DictWriter(f, delimiter='\t', fieldnames=header)
+        w.writeheader()
+        for line in csv_dict:
+            w.writerow(line)
+
+
+def create_big_maf(in_dir, out_file):
+    """Create mutation.maf file."""
+
+    """ Fera appel au containeur vcf2maf """
+    """ En sortie de vcf2maf il faut modifier le fichier d'output.
+    Pour ce faire, on appel la fonction update_sample_barcode """
+    """ Utilisera peut-être concatenate_maf_files """
+    pass
+
+
 def write_meta_files(out_dir, study_dir):
 
     with open(os.path.join(out_dir, study_dir, 'meta_study.txt'), 'wb') as f:
@@ -59,7 +115,7 @@ def write_meta_files(out_dir, study_dir):
         elif study_type == 'lung':
             f.write('type_of_cancer: nsclc\n')
         f.write('cancer_study_identifier:' + study_dir + '\n')
-        f.write('name: ' + name_meta_study + '\n')
+        f.write('name: ' + study_dir + '\n')
         f.write('description: ' + description_meta_study + '\n')
         f.write('short_name: ' + short_name_meta_study + '\n')
         f.write('add_global_case_list: true\n')
@@ -148,6 +204,7 @@ if __name__ == '__main__':
 
         NB: sample_id = n° anapath
     """
+
     in_dir = sys.argv[1]  # ex: in_build_study
 
     """ Dossier de sortie: voir architecture_fichiers_cbioportal.txt
