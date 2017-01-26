@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os, sys, csv, re
+import os, sys, csv, re, shutil
 import argparse
+import subprocess
+import shlex
 
 """ Créé les metadata et data à insérer dans cbioportal """
 
@@ -199,7 +201,7 @@ if __name__ == '__main__':
         -  anapathpatient20161206092905.csv.csv (n° anapath  / n° patient )
         -  NGS colon-lung échantillons COLONS_anapath.txt (n° anapath / colon)
         -  NGS colon-lung échantillons POUMONS_anapath.txt (n° anapath / lung)
-        -  Le dossier de sortie du script filter_trio.py "new_vcf"
+        -  Le dossier de sortie du script filter_trio.py "new_vcf" que l'on renomera vcf
 
         NB: sample_id = n° anapath
     """
@@ -209,6 +211,7 @@ if __name__ == '__main__':
     """ Dossier de sortie: voir architecture_fichiers_cbioportal.txt
     """
     out_dir = 'out_build_study'
+    vcf_folder_name = 'vcf'
 
     case_list_name = 'nom de case liste'
     case_list_description = 'description de case liste'
@@ -277,11 +280,43 @@ if __name__ == '__main__':
             fcases.write("case_list_ids: ")
             fcases.write("\t".join(case_list_ids))
 
-        # Création de fichier d'annotation à partir des fichiers .vcf du dossier trio
-        """ #TEST le fichier .maf d'annotation est créé manuelement pour le test d'insertion dans cBioportal,
-        c'est à dire que le container vcf2maf n'est pas appelé par le script.
-        with open(os.path.join(out_dir, study_dir, 'annotations.maf'), 'wb') as fmaf:
-        """
-
         # ~~~~ Partie meta ~~~~
         write_meta_files(out_dir, study_dir)
+
+        # ~~~~ Partie mutation ~~~~
+
+        # les maf sortant de vcf2maf vont dans le dossier study correspondant
+
+        volume_path = os.path.join(os.path.expanduser('~'), 'Code', 'mydockerbuild', 'vcf2maf', 'volume_data')
+
+        # On déplace le fichier dans le volume du container
+        # - override
+        if os.path.exists(os.path.join(volume_path, vcf_folder_name)):
+            shutil.rmtree(os.path.join(volume_path, vcf_folder_name))
+        shutil.copytree(os.path.join(in_dir, vcf_folder_name),
+            os.path.join(volume_path, vcf_folder_name))
+
+        # Création de fichier d'annotation à partir des fichiers .vcf du dossier trio
+        # On créé le dossier intermédiaire
+        cmd = "docker run -it --rm -v " + os.path.expanduser('~') + "/Code/mydockerbuild/vcf2maf/VEP_volume/cache/.vep:/root/.vep -v " + os.path.expanduser('~') + "/Code/mydockerbuild/vcf2maf/volume_data:/data vcf2maf --input-vcf " + os.path.join(os.sep, 'data' , vcf_folder_name) + " -d --output-maf " + os.path.join(os.sep, 'data', 'temp_maf_dir')
+        # cmd.format(input=os.path.join(volume_path, vcf_folder_name), output=os.path.join(volume_path, 'temp_maf_dir'))
+        print(cmd)
+        args = shlex.split(cmd)
+        subprocess.call(args)
+
+        # On ramène le dossier contenant les nouveau maf
+        shutil.move(os.path.join(volume_path, 'temp_maf_dir'),
+            os.path.join(out_dir, study_dir, 'temp_maf_dir'))
+
+        """ On lit les noms de fichier du dossier maf """
+        liste_file_name = os.listdir(os.path.join(out_dir, study_dir, 'temp_maf_dir'))
+
+        """ Update chaque fichiers """
+        for file_name in liste_file_name:
+            in_file_path = os.path.join(in_dir, vcf_folder_name, file_name)
+            out_vcf2maf_file_path = os.path.join('temp_updated_vcf', file_name)
+
+            # out: temp_updated_vcf/file_name
+            update_sample_barcode(out_vcf2maf_file_path, os.path.join(out_dir, study_dir, file_name))
+
+        # Partie fusion des maf en un gros maf
