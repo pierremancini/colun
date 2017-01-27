@@ -54,21 +54,33 @@ def make_dict_samples(dict_colon_lung):
     return dict_samples
 
 
-def update_sample_barcode(in_file_path, out_file_path):
+def update_sample_barcode(in_file_path, out_dir, dict_colon_lung):
     """ Update values according to the in_file's sample_id.
 
-    Replace "TUMOR" and "NORMAL" value by sample_id value in the .maf
-    file's colunms "Tumor_Sample_Barcode" and "Matched_Norm_Sample_Barcode" """
+    1) Replace "TUMOR" and "NORMAL" value by sample_id value in the .maf
+    file's colunms "Tumor_Sample_Barcode" and "Matched_Norm_Sample_Barcode"
+    2) Move each files in its corresponding study_dir according to dict_colon_lung
+    """
 
     head, file_name = os.path.split(in_file_path)
 
     # On extrait le n° anapath
-    iter_anapath = re.finditer(r"(?:[ \-_]{1})([A-Za-z]{2}[0-9]{1,3}).*", file_name)
+    iter_anapath = re.finditer(r"(?:[ \-_]{1})([A-Za-z]{1,2}[0-9]{1,3}).*", file_name)
     for match_anapath in iter_anapath:
         if match_anapath is not None:
             sample_id = match_anapath.group(1)
-        else:
-            print("Warning: no n° anapath found in file {}".format(file_name))
+
+    try:
+        if dict_colon_lung[sample_id] == 'colon':
+            study_dir = 'colon_study'
+        if dict_colon_lung[sample_id] == 'lung':
+            study_dir = 'lung_study'
+    except KeyError:
+        # Pas de warning ici pour ne pas faire doublon
+        study_dir = None
+    except UnboundLocalError as e:
+        print("Error: no n° anapath found in file {}".format(file_name))
+        raise e
 
     csv_dict = []
     # Lecture
@@ -88,24 +100,15 @@ def update_sample_barcode(in_file_path, out_file_path):
                 line[key] = sample_id
 
     # Ecriture
-    with open(out_file_path, 'wb') as f:
-        # ecriture de la partie \#
-        for line in meta_header:
-            f.write(line)
-        w = csv.DictWriter(f, delimiter='\t', fieldnames=header)
-        w.writeheader()
-        for line in csv_dict:
-            w.writerow(line)
-
-
-def create_big_maf(in_dir, out_file):
-    """Create mutation.maf file."""
-
-    """ Fera appel au containeur vcf2maf """
-    """ En sortie de vcf2maf il faut modifier le fichier d'output.
-    Pour ce faire, on appel la fonction update_sample_barcode """
-    """ Utilisera peut-être concatenate_maf_files """
-    pass
+    if study_dir is not None:
+        with open(os.path.join(out_dir, study_dir, 'temp_updated', file_name), 'wb') as f:
+            # ecriture de la partie \#
+            for line in meta_header:
+                f.write(line)
+            w = csv.DictWriter(f, delimiter='\t', fieldnames=header)
+            w.writeheader()
+            for line in csv_dict:
+                w.writerow(line)
 
 
 def write_meta_files(out_dir, study_dir):
@@ -194,6 +197,32 @@ def concatenate_maf_files(in_dir, out_file_path):
             w.writerow(line)
 
 
+def use_vcf2maf(in_dir, out_dir, study_dir, vcf_folder_name):
+    """ Use vcf2maf container directory given as argument."""
+    # les maf sortant de vcf2maf vont dans le dossier study correspondant
+
+    volume_path = os.path.join(os.path.expanduser('~'), 'Code', 'mydockerbuild', 'vcf2maf', 'volume_data')
+
+    # On déplace le fichier dans le volume du container
+    # - override
+    if os.path.exists(os.path.join(volume_path, vcf_folder_name)):
+        shutil.rmtree(os.path.join(volume_path, vcf_folder_name))
+    shutil.copytree(os.path.join(in_dir, vcf_folder_name),
+        os.path.join(volume_path, vcf_folder_name))
+
+    # Création de fichier d'annotation à partir des fichiers .vcf du dossier trio
+    # On créé le dossier intermédiaire
+    cmd = "docker run -it --rm -v " + os.path.expanduser('~') + "/Code/mydockerbuild/vcf2maf/VEP_volume/cache/.vep:/root/.vep -v " + os.path.expanduser('~') + "/Code/mydockerbuild/vcf2maf/volume_data:/data vcf2maf --input-vcf " + os.path.join(os.sep, 'data', vcf_folder_name) + " -d --output-maf " + os.path.join(os.sep, 'data', 'temp_maf_dir')
+    # cmd.format(input=os.path.join(volume_path, vcf_folder_name), output=os.path.join(volume_path, 'temp_maf_dir'))
+    print(cmd)
+    args = shlex.split(cmd)
+    subprocess.call(args)
+
+    # On ramène le dossier contenant les nouveau maf
+    shutil.copytree(os.path.join(volume_path, 'temp_maf_dir'),
+        os.path.join(out_dir, 'temp_maf_dir'))
+
+
 if __name__ == '__main__':
     """ Dossier à traiter, donné en 1er argument du script
 
@@ -211,6 +240,8 @@ if __name__ == '__main__':
     """ Dossier de sortie: voir architecture_fichiers_cbioportal.txt
     """
     out_dir = 'out_build_study'
+
+    # Doit être dans ~/colun_data/in_build_study
     vcf_folder_name = 'vcf'
 
     case_list_name = 'nom de case liste'
@@ -227,13 +258,11 @@ if __name__ == '__main__':
     maf_filename = 'mutations.maf'
     profile_description = 'Mutation description truc bidul'
 
-    """ TODO: le nom du dossier créer sera celui de la variable $study_id """
-    if not os.path.exists(out_dir):
-        os.mkdir(out_dir)
-    if not os.path.exists(os.path.join(out_dir, 'colon_study')):
-        os.mkdir(os.path.join(out_dir, 'colon_study'))
-    if not os.path.exists(os.path.join(out_dir, 'lung_study')):
-        os.mkdir(os.path.join(out_dir, 'lung_study'))
+    """ Creation des dossiers out_build, study et temp_updated """
+    if not os.path.exists(os.path.join(out_dir, 'colon_study', 'temp_updated')):
+        os.makedirs(os.path.join(out_dir, 'colon_study', 'temp_updated'))
+    if not os.path.exists(os.path.join(out_dir, 'lung_study', 'temp_updated')):
+        os.makedirs(os.path.join(out_dir, 'lung_study', 'temp_updated'))
 
     # Clinical data . Patients
     # Regroupe tout les patients de l'étude
@@ -246,6 +275,22 @@ if __name__ == '__main__':
     # Trie les sample_id par patient_id
     dict_samples = make_dict_samples(dict_colon_lung)
 
+    # ~~~~ Partie mutation ~~~~
+    # TODO: a réactivié quand tout les test sont ok; use_vcf2maf(in_dir, out_dir, study_dir, vcf_folder_name)
+    # -> output un dossier de fichier maf au path: ($out_dir/'temp_maf_dir')
+
+    """ On lit les noms de fichier du dossier maf """
+    liste_file_name = os.listdir(os.path.join(out_dir, 'temp_maf_dir'))
+
+    """ Update chaque fichiers """
+    for file_name in liste_file_name:
+        out_vcf2maf_file_path = os.path.join(out_dir, 'temp_maf_dir', file_name)
+
+        update_sample_barcode(out_vcf2maf_file_path, out_dir, dict_colon_lung)
+
+    shutil.rmtree(os.path.join(out_dir, 'temp_maf_dir'))
+
+    # Aiguillage colon ou lung
     for study_type in dict_samples:
         if study_type == 'colon':
             study_dir = 'colon_study'
@@ -283,40 +328,6 @@ if __name__ == '__main__':
         # ~~~~ Partie meta ~~~~
         write_meta_files(out_dir, study_dir)
 
-        # ~~~~ Partie mutation ~~~~
 
-        # les maf sortant de vcf2maf vont dans le dossier study correspondant
+    # Fusion des maf
 
-        volume_path = os.path.join(os.path.expanduser('~'), 'Code', 'mydockerbuild', 'vcf2maf', 'volume_data')
-
-        # On déplace le fichier dans le volume du container
-        # - override
-        if os.path.exists(os.path.join(volume_path, vcf_folder_name)):
-            shutil.rmtree(os.path.join(volume_path, vcf_folder_name))
-        shutil.copytree(os.path.join(in_dir, vcf_folder_name),
-            os.path.join(volume_path, vcf_folder_name))
-
-        # Création de fichier d'annotation à partir des fichiers .vcf du dossier trio
-        # On créé le dossier intermédiaire
-        cmd = "docker run -it --rm -v " + os.path.expanduser('~') + "/Code/mydockerbuild/vcf2maf/VEP_volume/cache/.vep:/root/.vep -v " + os.path.expanduser('~') + "/Code/mydockerbuild/vcf2maf/volume_data:/data vcf2maf --input-vcf " + os.path.join(os.sep, 'data' , vcf_folder_name) + " -d --output-maf " + os.path.join(os.sep, 'data', 'temp_maf_dir')
-        # cmd.format(input=os.path.join(volume_path, vcf_folder_name), output=os.path.join(volume_path, 'temp_maf_dir'))
-        print(cmd)
-        args = shlex.split(cmd)
-        subprocess.call(args)
-
-        # On ramène le dossier contenant les nouveau maf
-        shutil.move(os.path.join(volume_path, 'temp_maf_dir'),
-            os.path.join(out_dir, study_dir, 'temp_maf_dir'))
-
-        """ On lit les noms de fichier du dossier maf """
-        liste_file_name = os.listdir(os.path.join(out_dir, study_dir, 'temp_maf_dir'))
-
-        """ Update chaque fichiers """
-        for file_name in liste_file_name:
-            in_file_path = os.path.join(in_dir, vcf_folder_name, file_name)
-            out_vcf2maf_file_path = os.path.join('temp_updated_vcf', file_name)
-
-            # out: temp_updated_vcf/file_name
-            update_sample_barcode(out_vcf2maf_file_path, os.path.join(out_dir, study_dir, file_name))
-
-        # Partie fusion des maf en un gros maf
