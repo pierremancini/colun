@@ -150,9 +150,9 @@ def write_meta_files(out_dir, study_dir):
 
 
 def concatenate_maf_files(in_dir, out_file_path):
-    """ Colle le contenu des fichiers sans dupliquer le header.le
+    """ Colle le contenu des fichiers sans dupliquer le header.
 
-        La function doit marcher avec tout les .csv contenant un header
+        La function doit marcher avec tout les csv contenant un header
     """
     liste_file_name = os.listdir(in_dir)
 
@@ -196,8 +196,10 @@ def concatenate_maf_files(in_dir, out_file_path):
         for line in lines:
             w.writerow(line)
 
+    shutil.rmtree(in_dir)
 
-def use_vcf2maf(in_dir, out_dir, study_dir, vcf_folder_name):
+
+def use_vcf2maf(in_dir, out_dir, vcf_folder_name):
     """ Use vcf2maf container directory given as argument."""
     # les maf sortant de vcf2maf vont dans le dossier study correspondant
 
@@ -272,11 +274,13 @@ if __name__ == '__main__':
                  'lung': 'NGS colon-lung échantillons POUMONS_anapath.txt'}
     dict_colon_lung = make_dict_colon_lung(files_study_type)
 
+    concat_ok = {'colon': False, 'lung': False}
+
     # Trie les sample_id par patient_id
     dict_samples = make_dict_samples(dict_colon_lung)
 
     # ~~~~ Partie mutation ~~~~
-    # TODO: a réactivié quand tout les test sont ok; use_vcf2maf(in_dir, out_dir, study_dir, vcf_folder_name)
+    use_vcf2maf(in_dir, out_dir, vcf_folder_name)
     # -> output un dossier de fichier maf au path: ($out_dir/'temp_maf_dir')
 
     """ On lit les noms de fichier du dossier maf """
@@ -290,7 +294,7 @@ if __name__ == '__main__':
 
     shutil.rmtree(os.path.join(out_dir, 'temp_maf_dir'))
 
-    # Aiguillage colon ou lung
+    # Aiguillage colon / lung
     for study_type in dict_samples:
         if study_type == 'colon':
             study_dir = 'colon_study'
@@ -301,7 +305,7 @@ if __name__ == '__main__':
             os.mkdir(os.path.join(out_dir, study_dir, 'case_lists'))
 
         # ~~~~ Partie data ~~~~
-        # Ici on ouvre trois fichiers à la fois
+        # On ouvre trois fichiers à la fois
         with open(os.path.join(out_dir, study_dir, 'data_patients.txt'), 'wb') as fpatients, open(os.path.join(out_dir, study_dir, 'data_samples.txt'), 'wb') as fsamples, open(os.path.join(out_dir, study_dir, 'case_lists', "cases_custom.txt"), 'wb') as fcases:
 
             en_tete = "#Patient Identifier\tLocalisation\n#Patient Identifier\tLocalisation\n#STRING\tSTRING\n#1\t1\nPATIENT_ID\tLOCALISATION\n"
@@ -328,6 +332,7 @@ if __name__ == '__main__':
         # ~~~~ Partie meta ~~~~
         write_meta_files(out_dir, study_dir)
 
-
-    # Fusion des maf
-
+        # On ne lance la fusion qu'une fois
+        if not concat_ok[study_type]:
+            concat_ok[study_type] = True
+            concatenate_maf_files(os.path.join(out_dir, study_dir, 'temp_updated'), os.path.join(out_dir, study_dir, 'mutations.maf'))
