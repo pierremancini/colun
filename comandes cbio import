@@ -1,15 +1,22 @@
+cp path/to/colon_study
 
+scp -r colon_study transmart@176.31.103.20:/home/transmart/colon_study
+scp colon_study transmart@176.31.103.20:/colon_study
 
-./metaImport.py -s ~/Code/colun_data/out_build_study/lung_study -u http://176.31.103.20:8888/cbioportal/ -html ~/Code/myReport5.html -v -o --jar_path ~/Code/cbioportal/core/target/core-1.3.0-SNAPSHOT.jar
+gotrans="ssh transmart@176.31.103.20"
 
-docker cp lung_study/ official_cbioportal:/lung_study
+docker cp colon_study/ official_cbioportal:/colon_study
 
 docker exec -it official_cbioportal /bin/bash
-
 
 Dans le container official_cbioportal:
 
 cd core/src/main/scripts/importer/
 
-./metaImport.py -s /lung_study/ -o -u http://localhost:8080/cbioportal -v -html /cbioportal/myReport5.html
+./metaImport.py -s /colon_study/ -o -u http://localhost:8080/cbioportal -v -html /cbioportal/myReport6.html
 
+Rappatrier le rapport d'importation:
+
+docker cp official_cbioportal:/cbioportal/myReport6.html /home/transmart/myReport6.html
+
+scp transmart@176.31.103.20:/home/transmart/myReport6.html ~/Code/myReport6.html

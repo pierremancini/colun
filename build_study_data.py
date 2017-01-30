@@ -215,8 +215,6 @@ def use_vcf2maf(in_dir, out_dir, vcf_folder_name):
     # Création de fichier d'annotation à partir des fichiers .vcf du dossier trio
     # On créé le dossier intermédiaire
     cmd = "docker run -it --rm -v " + os.path.expanduser('~') + "/Code/mydockerbuild/vcf2maf/VEP_volume/cache/.vep:/root/.vep -v " + os.path.expanduser('~') + "/Code/mydockerbuild/vcf2maf/volume_data:/data vcf2maf --input-vcf " + os.path.join(os.sep, 'data', vcf_folder_name) + " -d --output-maf " + os.path.join(os.sep, 'data', 'temp_maf_dir')
-    # cmd.format(input=os.path.join(volume_path, vcf_folder_name), output=os.path.join(volume_path, 'temp_maf_dir'))
-    print(cmd)
     args = shlex.split(cmd)
     subprocess.call(args)
 
@@ -233,14 +231,15 @@ if __name__ == '__main__':
         -  NGS colon-lung échantillons COLONS_anapath.txt (n° anapath / colon)
         -  NGS colon-lung échantillons POUMONS_anapath.txt (n° anapath / lung)
         -  Le dossier de sortie du script filter_trio.py "new_vcf" que l'on renomera vcf
-
-        NB: sample_id = n° anapath
     """
 
-    in_dir = sys.argv[1]  # ex: in_build_study
+    parser = argparse.ArgumentParser()
+    parser.add_argument('in_dir')
+    parser.add_argument("--report", action='store_true',
+     help="Get a HTML report cbioportal validation in curent directory")
+    args = parser.parse_args()
 
-    """ Dossier de sortie: voir architecture_fichiers_cbioportal.txt
-    """
+    in_dir = args.in_dir  # ex: in_build_study
     out_dir = 'out_build_study'
 
     # Doit être dans ~/colun_data/in_build_study
@@ -248,7 +247,7 @@ if __name__ == '__main__':
 
     case_list_name = 'nom de case liste'
     case_list_description = 'description de case liste'
-    case_list_ids = []
+    case_list_ids = {'colon': [], 'lung': []}
 
     # meta_study.txt
     name_meta_study = ''
@@ -320,14 +319,14 @@ if __name__ == '__main__':
 
                 for sample_id in dict_samples[study_type][patient_id]:
                     fsamples.write(patient_id + "\t" + sample_id + "\n")
-                    case_list_ids.append(sample_id)
+                    case_list_ids[study_type].append(sample_id)
 
             fcases.write("cancer_study_identifier: " + study_dir + "\n")
             fcases.write("stable_id: " + study_dir + "_custom\n")
             fcases.write("case_list_name: " + case_list_name + "\n")
             fcases.write("case_list_description: " + case_list_description + "\n")
             fcases.write("case_list_ids: ")
-            fcases.write("\t".join(case_list_ids))
+            fcases.write("\t".join(case_list_ids[study_type]))
 
         # ~~~~ Partie meta ~~~~
         write_meta_files(out_dir, study_dir)
@@ -336,3 +335,17 @@ if __name__ == '__main__':
         if not concat_ok[study_type]:
             concat_ok[study_type] = True
             concatenate_maf_files(os.path.join(out_dir, study_dir, 'temp_updated'), os.path.join(out_dir, study_dir, 'mutations.maf'))
+
+        # Partie validation
+        # Appel validate.py
+
+        """ <your_cbioportal_dir>/core/src/test/scripts/test_data
+            ./validateData.py -s ../../../test/scripts/test_data/study_es_0/ -u http://176.31.103.20:8888/cbioportal/ -v
+        """
+        if args.report:
+            cmd = os.path.expanduser('~') + '/Code/cbioportal/core/src/main/scripts/importer/validateData.py \
+            -u http://176.31.103.20:8888/cbioportal/ -s ' + os.path.join(out_dir, study_dir) + '\
+             -v -html ReportValidation' + study_type + '.html'
+            argcall = shlex.split(cmd)
+            subprocess.call(argcall)
+            print("Report is made at current directory.")
