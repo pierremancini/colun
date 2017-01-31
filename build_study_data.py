@@ -212,6 +212,10 @@ def use_vcf2maf(in_dir, out_dir, vcf_folder_name):
     shutil.copytree(os.path.join(in_dir, vcf_folder_name),
         os.path.join(volume_path, vcf_folder_name))
 
+    # On suprrime le précédent temp_maf_dir, si il en a un pour éviter les effets de bord
+    if os.path.exists(os.path.join(out_dir, 'temp_maf_dir')):
+        shutil.rmtree(os.path.join(out_dir, 'temp_maf_dir'))
+
     # Création de fichier d'annotation à partir des fichiers .vcf du dossier trio
     # On créé le dossier intermédiaire
     cmd = "docker run -it --rm -v " + os.path.expanduser('~') + "/Code/mydockerbuild/vcf2maf/VEP_volume/cache/.vep:/root/.vep -v " + os.path.expanduser('~') + "/Code/mydockerbuild/vcf2maf/volume_data:/data vcf2maf --input-vcf " + os.path.join(os.sep, 'data', vcf_folder_name) + " -d --output-maf " + os.path.join(os.sep, 'data', 'temp_maf_dir')
@@ -337,15 +341,10 @@ if __name__ == '__main__':
             concatenate_maf_files(os.path.join(out_dir, study_dir, 'temp_updated'), os.path.join(out_dir, study_dir, 'mutations.maf'))
 
         # Partie validation
-        # Appel validate.py
-
-        """ <your_cbioportal_dir>/core/src/test/scripts/test_data
-            ./validateData.py -s ../../../test/scripts/test_data/study_es_0/ -u http://176.31.103.20:8888/cbioportal/ -v
-        """
         if args.report:
             cmd = os.path.expanduser('~') + '/Code/cbioportal/core/src/main/scripts/importer/validateData.py \
             -u http://176.31.103.20:8888/cbioportal/ -s ' + os.path.join(out_dir, study_dir) + '\
              -v -html ReportValidation' + study_type + '.html'
             argcall = shlex.split(cmd)
             subprocess.call(argcall)
-            print("Report is made at current directory.")
+            print("Reports are made in current directory.")

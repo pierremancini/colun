@@ -1,4 +1,4 @@
-cp path/to/colon_study
+cp path/to/out_build_study
 
 scp -r colon_study transmart@176.31.103.20:/home/transmart/colon_study
 scp colon_study transmart@176.31.103.20:/colon_study
@@ -13,10 +13,17 @@ Dans le container official_cbioportal:
 
 cd core/src/main/scripts/importer/
 
-./metaImport.py -s /colon_study/ -o -u http://localhost:8080/cbioportal -v -html /cbioportal/myReport6.html
+./metaImport.py -s /colon_study/ -o -u http://localhost:8080/cbioportal -v -html /cbioportal/myReportcolon2.html
 
 Rappatrier le rapport d'importation:
 
-docker cp official_cbioportal:/cbioportal/myReport6.html /home/transmart/myReport6.html
+docker cp official_cbioportal:/cbioportal/myReportcolon2.html /home/transmart/myReportcolon2.html
 
-scp transmart@176.31.103.20:/home/transmart/myReport6.html ~/Code/myReport6.html
+scp transmart@176.31.103.20:/home/transmart/myReportcolon2.html ~/Code/myReportcolon2.html
+
+Il faut redémarrer le container pour que la nouvelle study s'affiche sur cbioportal:
+
+docker stop official_cbioportal
+
+docker start official_cbioportal
+
