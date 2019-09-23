@@ -1,0 +1,29 @@
+cp path/to/out_build_study
+
+scp -r lung_study transmart@(ip):/home/transmart/lung_study
+scp lung_study transmart@(ip):/lung_study
+
+gotrans="ssh transmart@(ip)"
+
+docker cp lung_study/ official_cbioportal:/lung_study
+
+docker exec -it official_cbioportal /bin/bash
+
+Dans le container official_cbioportal:
+
+cd core/src/main/scripts/importer/
+
+./metaImport.py -s /lung_study/ -o -u http://localhost:8080/cbioportal -v -html /cbioportal/myReportlung2.html
+
+Rappatrier le rapport d'importation:
+
+docker cp official_cbioportal:/cbioportal/myReportlung2.html /home/transmart/myReportlung2.html
+
+scp transmart@(ip):/home/transmart/myReportlung2.html ~/Code/myReportlung2.html
+
+Il faut redémarrer le container pour que la nouvelle study s'affiche sur cbioportal:
+
+docker stop official_cbioportal
+
+docker start official_cbioportal
+
